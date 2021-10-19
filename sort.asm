@@ -23,6 +23,9 @@ addi a0,sp,0 ;; get &arr[]
 ld  a1,MAX_SIZE(zero);; int size 
 jal ra ,sort
 
+addi a0,sp,0 
+ld a1,MAX_SIZE(zero) 
+jal ra,printArr
 jal ra, main_end;; jump to infinite loop 
 
 main_end: 
@@ -34,22 +37,58 @@ main_end:
 ;; void sort(int a[], int size) -> a0,a1 -> Use a0 as the array pointer  
 
 sort:   sd ra,RETURN_ADD(zero) ;; store the return address from callee    
-        addi sp,sp,-16
-        addi a4,zero,0 ;; int i=0  
-        addi a6,a1,-1  ;;compute n-1  
+        addi sp,sp,-32 
 
-sortLoop:   beq a4,a6,exitSort ;; if i==n go to exit loop 
-                        
+        sd a4,0(sp)  ;; save a0 -> a4 
+        sd a6,8(sp)  ;; save a1 -> a6  
+        sd t0,16(sp) ;; save value  
+        sd t1,24(sp) ;; save value  
 
-sortLoop2: 
+        addi a4,a0,0 ;; coppy a0-> a4 -> &a[] 
+        addi a6,a1,0 ;; coppy a1-> a6 -> size  
+        addi t0,zero,0 ;; int i=0  
+                    
+sortLoop:   beq t0,a6,exitL1;; if i==n go to exit loop 
+            addi t1,t0,-1   ;; j = i-1                       
 
-exitL2: 
+sortLoop2:  blt t1,zero,exitL2  
+            slli t3,t1,3 ;; j<<3                         
+            add t3,t3,a4 ;; get &v[j] 
+            ld t4,0(t3)  ;; *v[j]
+            ld t5,8(t3) ;; *v[j+1]
+            blt t4,t5,exitL2             
+            beq t4,t5,exitL2 
+            ;;swap                         
+            addi a0,a4,0 
+            addi a1,t1,0
+            jal ra ,swap 
+            ;;j-- 
+            addi t1,t1,-1  
+            jal ra,sortLoop2 
 
-
+exitL2:     addi t0,t0,1 ;; i++  
+            jal ra,sortLoop 
 exitL1: 
+    ;;Restore value of the regiser 
+    ld a4,0(sp) 
+    ld a6,8(sp) 
+    ld t0,16(sp) 
+    ld t1,24(sp) 
+    addi sp,sp,32
+    ;;load return address and jump back to callee
+    ld ra,RETURN_ADD(zero) 
+    jalr zero,0(ra) 
 
+;; void swap(int v[] , int k) -> parameter is at a0 a1 
 swap: 
+    slli t2,a1,3  
+    add t2,t2,a0 ;; &v[k] 
+    ld t6,0(t2) ;; *v[k]
+    ld s3,8(t2) ;; *v[k+1]
 
+    sd s3,0(t2) ;; swap  
+    sd t6,8(t2) ;;swap 
+    jalr zero,0(ra)        
 
 ;;sort:   sd ra,RETURN_ADD(zero) ;; store the return address from callee    
 ;;        addi a4,zero,0 ;; int i=0  
